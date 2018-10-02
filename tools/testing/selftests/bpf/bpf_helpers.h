@@ -72,6 +72,18 @@ static int (*bpf_sock_map_update)(void *map, void *key, void *value,
 				  unsigned long long flags) =
 	(void *) BPF_FUNC_sock_map_update;
 
+static struct bpf_sock *(*bpf_sk_lookup_tcp)(void *ctx,
+					     struct bpf_sock_tuple *tuple,
+					     int size, unsigned int netns_id,
+					     unsigned long long flags) =
+	(void *) BPF_FUNC_sk_lookup_tcp;
+static struct bpf_sock *(*bpf_sk_lookup_udp)(void *ctx,
+					     struct bpf_sock_tuple *tuple,
+					     int size, unsigned int netns_id,
+					     unsigned long long flags) =
+	(void *) BPF_FUNC_sk_lookup_udp;
+static int (*bpf_sk_release)(struct bpf_sock *sk) =
+	(void *) BPF_FUNC_sk_release;
 
 /* llvm builtin functions that eBPF C program may use to
  * emit BPF_LD_ABS and BPF_LD_IND instructions
