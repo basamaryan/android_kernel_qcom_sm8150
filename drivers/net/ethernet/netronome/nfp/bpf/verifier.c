@@ -159,6 +159,16 @@ static const struct bpf_ext_analyzer_ops nfp_bpf_analyzer_ops = {
 	.insn_hook = nfp_verify_insn,
 };
 
+static int nfp_bpf_finalize(struct bpf_verifier_env *env)
+{
+	return 0;
+}
+
+const struct bpf_prog_offload_ops nfp_bpf_analyzer_ops = {
+	.insn_hook	= nfp_verify_insn,
+	.finalize	= nfp_bpf_finalize,
+};
+
 int nfp_prog_verify(struct nfp_prog *nfp_prog, struct bpf_prog *prog)
 {
 	struct nfp_bpf_analyzer_priv *priv;
