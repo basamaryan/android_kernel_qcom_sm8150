@@ -677,7 +677,7 @@ int dup_userfaultfd(struct vm_area_struct *vma, struct list_head *fcs)
 		vm_write_begin(vma);
 		vma->vm_userfaultfd_ctx = NULL_VM_UFFD_CTX;
 		WRITE_ONCE(vma->vm_flags,
-			   vma->vm_flags & ~__VM_UFFD_FLAGS;
+			   vma->vm_flags & ~__VM_UFFD_FLAGS);
 		vm_write_end(vma);
 		return 0;
 	}
