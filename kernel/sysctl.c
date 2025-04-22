@@ -1923,15 +1923,15 @@ static struct ctl_table vm_table[] = {
 	},
 #endif
 #ifdef CONFIG_USERFAULTFD
-        {
-                .procname       = "unprivileged_userfaultfd",
-                .data           = &sysctl_unprivileged_userfaultfd,
-                .maxlen         = sizeof(sysctl_unprivileged_userfaultfd),
-                .mode           = 0644,
-                .proc_handler   = proc_dointvec_minmax,
-                .extra1         = &zero,
-                .extra2         = &one,
-        },
+	{
+		.procname	= "unprivileged_userfaultfd",
+		.data		= &sysctl_unprivileged_userfaultfd,
+		.maxlen		= sizeof(sysctl_unprivileged_userfaultfd),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec_minmax,
+		.extra1		= &zero,
+		.extra2		= &one,
+	},
 #endif
 	{ }
 };
