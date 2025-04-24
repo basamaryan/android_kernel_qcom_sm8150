@@ -1,4 +1,4 @@
-config ARCH
+init/Kconfigconfig ARCH
 	string
 	option env="ARCH"
 
@@ -1527,11 +1527,6 @@ config ADVISE_SYSCALLS
 	  applications use these syscalls, you can disable this option to save
 	  space.
 
-config HAVE_ARCH_USERFAULTFD_MINOR
-	bool
-	help
-	  Arch has userfaultfd minor fault support
-
 config BPF_UNPRIV_DEFAULT_OFF
 	bool "Disable unprivileged BPF by default"
 	depends on BPF_SYSCALL
@@ -1557,6 +1552,11 @@ config PCI_QUIRKS
 	  This enables workarounds for various PCI chipset
 	  bugs/quirks. Disable this only if your target machine is
 	  unaffected by PCI quirks.
+
+config HAVE_ARCH_USERFAULTFD_MINOR
+        bool
+        help
+          Arch has userfaultfd minor fault support
 
 config MEMBARRIER
 	bool "Enable membarrier() system call" if EXPERT

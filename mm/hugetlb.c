@@ -3775,7 +3775,7 @@ int huge_add_to_page_cache(struct page *page, struct address_space *mapping,
 	return 0;
 }
 
-static int vm_fault_t hugetlb_handle_userfault(struct vm_area_struct *vma,
+static inline int hugetlb_handle_userfault(struct vm_area_struct *vma,
                                                   struct address_space *mapping,
                                                   struct hstate *h,
                                                   pgoff_t idx,
