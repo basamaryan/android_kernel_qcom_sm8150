@@ -556,6 +556,7 @@ static int acquire_reference_state(struct bpf_verifier_env *env, int insn_idx)
 static int release_reference_state(struct bpf_func_state *state, int ptr_id)
 {
 	int i, last_idx;
+
 	last_idx = state->acquired_refs - 1;
 	for (i = 0; i < state->acquired_refs; i++) {
 		if (state->refs[i].id == ptr_id) {
@@ -1587,9 +1588,11 @@ static int check_sock_access(struct bpf_verifier_env *env, int insn_idx,
 	struct bpf_reg_state *reg = &regs[regno];
 	struct bpf_insn_access_aux info = {};
 	bool valid;
+
 	if (reg->smin_value < 0) {
 		return -EACCES;
 	}
+
 	switch (reg->type) {
 	case PTR_TO_SOCK_COMMON:
 		valid = bpf_sock_common_is_valid_access(off, size, t, &info);
@@ -1600,6 +1603,7 @@ static int check_sock_access(struct bpf_verifier_env *env, int insn_idx,
 	default:
 		valid = false;
 	}
+
 	if (valid) {
 		env->insn_aux_data[insn_idx].ctx_field_size =
 			info.ctx_field_size;
@@ -1608,7 +1612,6 @@ static int check_sock_access(struct bpf_verifier_env *env, int insn_idx,
 
 	verbose(env, "R%d invalid %s access off=%d size=%d\n",
 		regno, reg_type_str[reg->type], off, size);
-
 	return -EACCES;
 }
 
@@ -1619,6 +1622,11 @@ static bool __is_pointer_value(bool allow_ptr_leaks,
 		return false;
 
 	return reg->type != SCALAR_VALUE;
+}
+
+static struct bpf_reg_state *reg_state(struct bpf_verifier_env *env, int regno)
+{
+	return cur_regs(env) + regno;
 }
 
 static bool is_pointer_value(struct bpf_verifier_env *env, int regno)
@@ -1636,7 +1644,6 @@ static bool is_ctx_reg(struct bpf_verifier_env *env, int regno)
 static bool is_sk_reg(struct bpf_verifier_env *env, int regno)
 {
 	const struct bpf_reg_state *reg = reg_state(env, regno);
-
 	return type_is_sk_pointer(reg->type);
 }
 
@@ -2045,7 +2052,7 @@ static int check_xadd(struct bpf_verifier_env *env, int insn_idx, struct bpf_ins
 	}
 
 	if (is_ctx_reg(env, insn->dst_reg) ||
-	    is_pkt_reg(env, insn->dst_reg) ||
+	    is_pkt_reg(env, insn->dst_reg)  ||
 	    is_sk_reg(env, insn->dst_reg)) {
 		verbose(env, "BPF_XADD stores into R%d %s is not allowed\n",
 			insn->dst_reg, is_ctx_reg(env, insn->dst_reg) ?
@@ -2681,6 +2688,7 @@ static int release_reference(struct bpf_verifier_env *env,
 	int i;
 	for (i = 0; i <= vstate->curframe; i++)
 		release_reg_references(env, vstate->frame[i], meta->ptr_id);
+
 	return release_reference_state(cur_func(env), meta->ptr_id);
 }
 
@@ -2987,7 +2995,6 @@ static int check_helper_call(struct bpf_verifier_env *env, int func_id, int insn
 		regs[BPF_REG_0].type = PTR_TO_SOCKET_OR_NULL;
 		if (is_acquire_function(func_id)) {
 			int id = acquire_reference_state(env, insn_idx);
-
 			if (id < 0)
 				return id;
 			/* For release_reference() */
@@ -3339,7 +3346,7 @@ static int adjust_ptr_min_max_vals(struct bpf_verifier_env *env,
 	    umin_ptr = ptr_reg->umin_value, umax_ptr = ptr_reg->umax_value;
 	struct bpf_sanitize_info info = {};
 	u8 opcode = BPF_OP(insn->code);
-	u32 dst = insn->dst_reg;
+	u32 dst = insn->dst_reg, src = insn->src_reg;
 	int ret;
 
 	dst_reg = &regs[dst];
@@ -3367,11 +3374,20 @@ static int adjust_ptr_min_max_vals(struct bpf_verifier_env *env,
 		return -EACCES;
 	case CONST_PTR_TO_MAP:
 	case PTR_TO_PACKET_END:
-        case PTR_TO_SOCK_COMMON:
-        case PTR_TO_SOCK_COMMON_OR_NULL:
+	case PTR_TO_SOCKET:
+	case PTR_TO_SOCKET_OR_NULL:
+	case PTR_TO_SOCK_COMMON:
+	case PTR_TO_SOCK_COMMON_OR_NULL:
 		verbose(env, "R%d pointer arithmetic on %s prohibited\n",
 			dst, reg_type_str[ptr_reg->type]);
 		return -EACCES;
+	case PTR_TO_MAP_VALUE:
+		if (!env->allow_ptr_leaks && !known && (smin_val < 0) != (smax_val < 0)) {
+			verbose(env, "R%d has unknown scalar with mixed signed bounds, pointer arithmetic with it prohibited for !root\n",
+				off_reg == dst_reg ? dst : src);
+			return -EACCES;
+		}
+		/* fall-through */
 	default:
 		break;
 	}
@@ -5385,9 +5401,9 @@ static bool regsafe(struct bpf_reg_state *rold, struct bpf_reg_state *rcur,
 	case PTR_TO_CTX:
 	case CONST_PTR_TO_MAP:
 	case PTR_TO_PACKET_END:
+	case PTR_TO_FLOW_KEYS:
 	case PTR_TO_SOCKET:
 	case PTR_TO_SOCKET_OR_NULL:
-	case PTR_TO_FLOW_KEYS:
 	case PTR_TO_SOCK_COMMON:
 	case PTR_TO_SOCK_COMMON_OR_NULL:
 		/* Only valid matches are exact, which memcmp() above

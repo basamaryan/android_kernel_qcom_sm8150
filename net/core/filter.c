@@ -1579,7 +1579,6 @@ static const struct bpf_func_proto bpf_skb_pull_data_proto = {
 BPF_CALL_1(bpf_sk_fullsock, struct sock *, sk)
 {
 	sk = sk_to_full_sk(sk);
-
 	return sk_fullsock(sk) ? (unsigned long)sk : (unsigned long)NULL;
 }
 
@@ -4580,12 +4579,11 @@ static u32 bpf_convert_ctx_access(enum bpf_access_type type,
 		*insn++ = BPF_LDX_MEM(BPF_SIZEOF(void *), si->dst_reg,
 				      si->src_reg, off);
 		break;
-
-        case offsetof(struct __sk_buff, sk):
-                *insn++ = BPF_LDX_MEM(BPF_FIELD_SIZEOF(struct sk_buff, sk),
-                                      si->dst_reg, si->src_reg,
-                                      offsetof(struct sk_buff, sk));
-                break;
+	case offsetof(struct __sk_buff, sk):
+		*insn++ = BPF_LDX_MEM(BPF_FIELD_SIZEOF(struct sk_buff, sk),
+				      si->dst_reg, si->src_reg,
+				      offsetof(struct sk_buff, sk));
+		break;
 	}
 
 	return insn - insn_buf;
